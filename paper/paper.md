@@ -37,12 +37,12 @@ See [@dempe2018bilevel] for an overview of applications and recent
 formulations and theoretical progress.
 
 The computation of an optimal solution to a bilevel problem is in general hard.
-Even with all the constraints and the objectives at the two level being linear,
-the resulting problem is non-convex and NP-hard, with possibly a disjoint
+Even with all the constraints and the objectives at the two levels being linear,
+the resulting problem is non-convex and NP-hard, with a possibly disjoint
 feasible set. Optimization practitioners often rely on problem-specific
 properties and modeling techniques or heuristics. The goal of this package
-is to offer both a flexible model for a general class of bilevel problems
-and a solving method which is compatible with the JuMP workflow.
+is to offer a both flexible model of a general class of bilevel problems
+and a solver which is compatible with the JuMP workflow.
 
 # Bilevel optimization
 
@@ -64,13 +64,12 @@ at the lower-level.
 
 For most lower-level problems, there are several optimal solutions
 (different solutions yielding the same optimal value of the objective).
-Several methodologies have been developed for such case, the two principal
-being the optimistic and pessimistic bilevel formulations, turning the
-set-valued problem into a regular one. The approach used for now in
-BilevelOptimization.jl is the optimistic one, allowing for more
-easily reformulated problems.
+Several methodologies have been developed for such cases, the two primary
+approaches being the optimistic and pessimistic bilevel formulations [@dempe2018bilevel],
+regularizing the set-valued problem by guaranteeing the uniqueness of the lower-level solution.
+The approach used in *BilevelOptimization.jl* is the optimistic one.
 
-This package is initially designed for a restricted form:
+This package is initially designed for a problem of the form:
 ```julia
 min_x cx^T x + cy^T y
 s.t. G x + H y <= q
@@ -99,14 +98,14 @@ to zero, where $s_i$ is the slack variable associated with constraint $i$.
 This non-convex, non-linear constraint cannot be tackled
 efficiently by common optimization solvers and needs to be re-formulated.
 The two common approaches are linearization using a binary variable and
-"big-M" primal and dual upper bounds [@pineda19] and Special Ordered Sets
-of type 1 (SOS1).
+"big-M" primal and dual upper bounds and Special Ordered Sets
+of type 1 (SOS1) [@pineda19].
 A special ordered set 1 is a group of two or more variables,
 of which at most one can be non-zero. Mixed-Integer Linear solvers use this
 information for branching directly on the two variables.
 In the case of the bilevel problem presented above, the sets contain the slack
 variable and dual variable associated with each lower-level constraint,
-forcing at least one of them to 0.
+forcing at least one of them to zero.
 
 # Types and methods for bilevel optimization
 
@@ -122,11 +121,11 @@ build_blp_model(bp::BilevelLP, solver; [comp_method])
 
 It returns a tuple `(m, x, y, lambda, s)` with:
 
-- `m` the JuMP model
-- `x` the upper-level vector of variables
-- `y` the lower-level vector of variables
-- `lambda` the lower-level dual variables
-- `s` the lower-level slack variables
+- `m`: the JuMP model,
+- `x`: the upper-level vector of variables,
+- `y`: the lower-level vector of variables,
+- `lambda`: the lower-level dual variables, and
+- `s`: the lower-level slack variables.
 
 Other signatures allow users to modify an already-existing JuMP model
 without storing every constraint or variable into a `BilevelLP` structure.
@@ -145,7 +144,7 @@ and define the following function:
 add_complementarity_constraint(m, cm::CM, s, lambda, y, sigma)
 ```
 
-Where CM is the complementarity constraint type.
+where CM is the complementarity constraint type.
 
 # Application to toll-setting problems
 
@@ -153,21 +152,22 @@ The toll-setting problem is a class of bilevel optimization where the two
 levels of decision are taken on a graph [@brotcorne2001bilevel].
 It belongs to the more general framework of network pricing problems with
 applications in road management [@harks2018toll] or telecommunication
-network reliability [@Hayrapetyan2007].  
+network reliability [@Hayrapetyan2007].
 
 In this problem, the upper level decides on a toll to apply on some arcs
-of a directed graph. Each arc has an initial cost, the lower-level then
-finds the minimum-cost flow from a source to a sink with a minimum circulating
-flow. This problem can entirely be modeled using the framework
-presented above, a composite type holding all required data is defined
-in the package, allowing users to bypass the re-formulation of the model
+of a directed graph. Each arc has an initial cost and a cost resulting from an
+upper-level decision. The lower-level problem then consists in finding
+the minimum-cost flow from a source to a sink with a minimum circulating
+flow. This problem can be entirely modeled using the framework
+presented above, using a composite datatype defined in the package for holding all required data,
+and allowing users to bypass the re-formulation of the model
 from its algebraic JuMP form to a standard form. Users can describe their
 problem using the `BilevelFlowProblem` struct containing:
 
-- The initial matrix of arc costs `init_cost`
-- A boolean matrix indicating which edges are taxable `taxable_edges`
-- The capacity matrix `capacities`
-- The different levels of tax that can be applied to each arc `tax_options`
+- The initial matrix of arc costs `init_cost`,
+- A boolean matrix indicating which edges are taxable `taxable_edges`,
+- The capacity matrix `capacities`,
+- The different levels of tax that can be applied to each arc `tax_options`, and
 - The minimum amount of flow that the follower needs to pass from source to sink `minflow`
 
 Building the `JuMP.Model` is done similarly to the generic bilevel problem,
@@ -178,10 +178,10 @@ build_blp_model(bfp::BilevelFlowProblem, solver; [comp_method])
 
 # More general problem formulations
 
-Even though BilevelOptimization.jl is thought for linear-linear
+Even though BilevelOptimization.jl is designed for linear-linear
 bilevel problems which can be described by the `BilevelLP` type,
-the design allows users to bypass the upper-level problem
-specification. They can provide a pre-built `JuMP.Model` with the upper-level
+the API allows users to bypass the upper-level problem specification.
+They can provide a pre-built `JuMP.Model` with the upper-level
 objective and constraints already set, for instance for quadratic or conic upper level
 formulations. The only requirement is that the solver must support both
 the type of constraints specified in the model and in the `comp_method`.
